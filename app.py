@@ -110,3 +110,15 @@ async def save_feedback(payload: dict):
     with FEEDBACK_FILE.open("a", encoding="utf-8") as f:
         f.write(line)
     return {"ok": True}
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=port,
+        reload=False,  # ¡IMPORTANTE! Nunca pongas reload=True en producción
+    )
