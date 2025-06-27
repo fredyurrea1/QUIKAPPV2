@@ -4,6 +4,7 @@
 # • GET  /           → sirve templates/index.html
 # • POST /procesar   → recibe PDF, genera consolidado.xlsx y lo devuelve
 # • Cada subida vive en runs/<uuid>/, que se borra 30 min después
+# • POST /feedback   → guarda calificación (1–5)
 # ─────────────────────────────────────────────────────────────
 
 from fastapi import (
@@ -18,15 +19,17 @@ from pathlib import Path
 import uuid
 import shutil
 import asyncio
+import os
 
 # Nuestra lógica de negocio
 from procesar_pdf import process_pdf
 
 # ──────────────── Rutas base ────────────────
-BASE_DIR      = Path(__file__).parent.resolve()
+BASE_DIR = Path(__file__).parent.resolve()
 TEMPLATES_DIR = BASE_DIR / "templates"           # index.html está aquí
-RUNS_DIR      = BASE_DIR / "runs"                # trabajos temporales
+RUNS_DIR = BASE_DIR / "runs"                     # trabajos temporales
 RUNS_DIR.mkdir(exist_ok=True)
+FEEDBACK_FILE = BASE_DIR / "feedback.csv"
 
 # Cargamos la plantilla HTML una sola vez
 INDEX_HTML = (TEMPLATES_DIR / "index.html").read_text(encoding="utf-8")
@@ -35,7 +38,7 @@ INDEX_HTML = (TEMPLATES_DIR / "index.html").read_text(encoding="utf-8")
 app = FastAPI(
     title="Procesador de Informes PDF → Excel",
     version="1.0.0",
-    docs_url="/docs",          # Swagger UI (opcional)
+    docs_url="/docs",  # Swagger UI
     redoc_url=None,
 )
 
@@ -46,6 +49,7 @@ async def _cleanup_later(path: Path, delay: int = 60 * 30) -> None:
     shutil.rmtree(path, ignore_errors=True)
 
 # ──────────────── Endpoints ────────────────
+
 @app.get("/", response_class=HTMLResponse)
 async def index():
     """Muestra el formulario de subida."""
@@ -58,7 +62,7 @@ async def procesar_pdf(
     file: UploadFile = File(..., description="Archivo PDF"),
 ):
     # 1) Directorio aislado
-    run_id  = uuid.uuid4().hex
+    run_id = uuid.uuid4().hex
     workdir = RUNS_DIR / run_id
     workdir.mkdir(parents=True, exist_ok=True)
 
@@ -72,7 +76,6 @@ async def procesar_pdf(
         consolidado = process_pdf(pdf_path, workdir)
     except Exception as err:
         shutil.rmtree(workdir, ignore_errors=True)
-        # ⚠️ Devolvemos error 500 para que el front no baje un .xlsx inválido
         raise HTTPException(status_code=500, detail=str(err))
 
     # 4) Programar limpieza en background
@@ -81,24 +84,10 @@ async def procesar_pdf(
     # 5) Responder archivo válido
     return FileResponse(
         consolidado,
-        media_type=(
-            "application/"
-            "vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        ),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename="consolidado.xlsx",
     )
 
-# ──────────────── Ejecución directa ────────────────
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "app:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,         # auto-recarga en desarrollo
-    )
-# ───────────── Guardar feedback ─────────────
-FEEDBACK_FILE = BASE_DIR / "feedback.csv"
 
 @app.post("/feedback")
 async def save_feedback(payload: dict):
@@ -111,14 +100,15 @@ async def save_feedback(payload: dict):
         f.write(line)
     return {"ok": True}
 
+# ──────────────── Ejecución directa (local) ────────────────
+
 if __name__ == "__main__":
     import uvicorn
-    import os
 
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 8000))  # Railway usará su puerto
     uvicorn.run(
         "app:app",
         host="0.0.0.0",
         port=port,
-        reload=False,  # ¡IMPORTANTE! Nunca pongas reload=True en producción
+        reload=False  # Nunca usar reload en producción
     )
