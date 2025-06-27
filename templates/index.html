@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>QUIK S.A.S · Conversor de PDF</title>
+
+  <style>
+    /* ——— Reset & layout ——— */
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:Arial,Helvetica,sans-serif;
+      background:#f4f7fb;
+      display:flex;align-items:center;justify-content:center;
+      height:100vh;
+      color:#333;
+    }
+
+    /* ——— Toast de bienvenida ——— */
+    .toast{
+      position:fixed;top:20px;left:50%;transform:translateX(-50%);
+      background:#004c99;color:#fff;padding:12px 24px;border-radius:6px;
+      box-shadow:0 3px 8px rgba(0,0,0,.15);opacity:0;
+      transition:opacity .4s ease;pointer-events:none;z-index:1000;
+    }
+    .toast.show{opacity:1}
+
+    /* ——— Card ——— */
+    .card{
+      width:350px;background:#fff;border-radius:10px;
+      padding:32px 28px;box-shadow:0 5px 15px rgba(0,0,0,.1);
+      text-align:center;
+    }
+    h1{color:#004c99;font-size:1.6rem;margin-bottom:.25rem}
+    p.sub{font-size:.95rem;margin-bottom:1.5rem}
+
+    /* ——— File & button ——— */
+    input[type="file"]{
+      width:100%;padding:10px;border:1px solid #ccc;
+      border-radius:6px;margin-bottom:1.2rem;cursor:pointer;
+    }
+    button{
+      width:100%;background:#004c99;color:#fff;border:none;
+      border-radius:6px;padding:12px;font-size:1rem;cursor:pointer;
+      transition:background .2s;
+    }
+    button:hover{background:#003366}
+    #status{margin-top:1rem;font-size:.9rem}
+
+    /* ——— Modal valoración ——— */
+    .overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,.5);
+      display:flex;align-items:center;justify-content:center;
+      visibility:hidden;opacity:0;transition:.3s;
+      z-index:2000;
+    }
+    .overlay.show{visibility:visible;opacity:1}
+    .modal{
+      background:#fff;border-radius:8px;padding:24px 32px;
+      text-align:center;width:300px;box-shadow:0 4px 12px rgba(0,0,0,.2);
+    }
+    .stars{
+      font-size:2rem;color:#ccc;cursor:pointer;margin:10px 0 20px;
+    }
+    .stars span{transition:color .2s}
+    .stars span.active{color:#ffc107}
+  </style>
+</head>
+
+<body>
+
+  <!-- Toast -->
+  <div id="welcomeToast" class="toast">
+    Bienvenidos, el proceso ahora es más sencillo:<br>
+    solo carguen el PDF y descarguen el archivo.
+  </div>
+
+  <!-- Card principal -->
+  <div class="card">
+    <h1>QUIK S.A.S</h1>
+    <p class="sub">Conversor de PDF a Excel</p>
+
+    <form id="uploadForm">
+      <input type="file" name="file" accept="application/pdf" required />
+      <button type="submit">Procesar</button>
+    </form>
+
+    <p id="status"></p>
+  </div>
+
+  <!-- Modal de valoración -->
+  <div id="ratingOverlay" class="overlay">
+    <div class="modal">
+      <h3>¿Qué tal fue tu experiencia?</h3>
+      <div id="stars" class="stars">
+        <span data-v="1">★</span><span data-v="2">★</span>
+        <span data-v="3">★</span><span data-v="4">★</span>
+        <span data-v="5">★</span>
+      </div>
+      <p id="thanks" style="display:none;font-size:.9rem;color:#28a745">
+        ¡Gracias por calificar!
+      </p>
+    </div>
+  </div>
+
+  <script>
+    /* ——— Toast ——— */
+    window.addEventListener('DOMContentLoaded',()=>{
+      const toast=document.getElementById('welcomeToast');
+      toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'),5000);
+    });
+
+    /* ——— Subida & descarga ——— */
+    const form   = document.getElementById('uploadForm');
+    const status = document.getElementById('status');
+    const overlay= document.getElementById('ratingOverlay');
+    const stars  = document.querySelectorAll('#stars span');
+    const thanks = document.getElementById('thanks');
+
+    form.addEventListener('submit',async (e)=>{
+      e.preventDefault();
+      status.textContent='Procesando…';
+      const data=new FormData(form);
+      try{
+        const res=await fetch('/procesar',{method:'POST',body:data});
+        if(!res.ok){
+          const err=await res.json();
+          status.textContent='Error: '+(err.detail||'no se pudo procesar');
+          return;
+        }
+        const blob=await res.blob();
+        const url=URL.createObjectURL(blob);
+        const a=Object.assign(document.createElement('a'),
+                  {href:url,download:'consolidado.xlsx'});
+        document.body.appendChild(a);a.click();a.remove();
+        URL.revokeObjectURL(url);
+        status.textContent='¡Listo! Se descargó el Excel.';
+        form.reset();
+        /* Mostrar modal de valoración */
+        overlay.classList.add('show');
+      }catch(err){
+        status.textContent='Error: '+err.message;
+      }
+    });
+
+    /* ——— Estrellas ——— */
+    stars.forEach(s=>{
+      s.addEventListener('mouseover',()=>highlight(s.dataset.v));
+      s.addEventListener('mouseout', ()=>highlight(0));
+      s.addEventListener('click',    ()=>sendRating(s.dataset.v));
+    });
+    function highlight(val){
+      stars.forEach(st=>{
+        st.classList.toggle('active', st.dataset.v<=val);
+      });
+    }
+    async function sendRating(val){
+      highlight(val);
+      try{
+        await fetch('/feedback',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({rating:Number(val)})
+        });
+      }catch{}
+      thanks.style.display='block';
+      setTimeout(()=>overlay.classList.remove('show'),2000);
+    }
+  </script>
+</body>
+</html>
