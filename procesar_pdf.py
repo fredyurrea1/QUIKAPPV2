@@ -293,6 +293,36 @@ def clean_datos_excel(datos_xlsx: Path) -> Path:
     return clean_xlsx
 
 
+
+def fix_hoja_comunicacion(clean_xlsx: Path) -> None:
+    # Cargar hoja Comunicación
+    book = pd.ExcelFile(clean_xlsx)
+    df = pd.read_excel(book, sheet_name="Comunicación", header=None)
+
+    col_c = 2  # índice columna C
+    ultimo_valido = None
+    nuevas_filas = []
+
+    for _, row in df.iterrows():
+        valor_c = str(row[col_c]) if pd.notna(row[col_c]) else ""
+        if valor_c.strip().startswith("Dentro") or valor_c.strip().startswith("Fuera"):
+            ultimo_valido = valor_c.strip()
+            nuevas_filas.append(row.values)
+        else:
+            nueva = row.values.copy()
+            # desplazar celdas a la derecha a partir de col_c
+            nueva[col_c+1:len(nueva)] = nueva[col_c:len(nueva)-1]
+            nueva[col_c] = ultimo_valido
+            nuevas_filas.append(nueva)
+
+    # Crear DataFrame corregido
+    df_nuevo = pd.DataFrame(nuevas_filas)
+
+    # Reescribir solo la hoja Comunicación manteniendo las demás
+    with pd.ExcelWriter(clean_xlsx, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        df_nuevo.to_excel(writer, sheet_name="Comunicación", index=False, header=False)
+
+
 # ───────── CONSOLIDADO FINAL → CONSOLIDADO.XLSX ─────────────
 def build_consolidado(clean_xlsx: Path) -> Path:
     header = [
@@ -412,6 +442,7 @@ def process_pdf(pdf_path: Path | str, work_dir: Path | str) -> Path:
     add_nombre_integrante_column(salida)
     datos = split_salida_to_datos(trimmed, salida)
     clean = clean_datos_excel(datos)
+    fix_hoja_comunicacion(clean) 
     cons = build_consolidado(clean)
     return cons
 
