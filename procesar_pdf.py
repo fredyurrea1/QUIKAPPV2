@@ -223,6 +223,10 @@ def split_salida_to_datos(pdf: Path, xlsx: Path) -> Path:
     pros_df = annotate_section(pros_df, "Prospectivo")
     comunicacion_df = annotate_section(comunicacion_df, "Retrospectivo")
 
+    # Forzar "Retrospectivo" en toda la columna F (índice 5)
+    if not comunicacion_df.empty and comunicacion_df.shape[1] > 5:
+        comunicacion_df.iloc[:, 5] = "Retrospectivo"
+
     datos_xlsx = pdf.parent / "datos.xlsx"
     with pd.ExcelWriter(datos_xlsx, engine="openpyxl") as w:
         retro_df.to_excel(w, "Retrospectivo", index=False, header=False)
