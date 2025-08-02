@@ -3,169 +3,167 @@
 <head>
   <meta charset="UTF-8" />
   <title>QUIK S.A.S · Conversor de PDF</title>
-
   <style>
-    /* ——— Reset & layout ——— */
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      font-family:Arial,Helvetica,sans-serif;
-      background:#f4f7fb;
-      display:flex;align-items:center;justify-content:center;
-      height:100vh;
-      color:#333;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
     }
 
-    /* ——— Toast de bienvenida ——— */
-    .toast{
-      position:fixed;top:20px;left:50%;transform:translateX(-50%);
-      background:#004c99;color:#fff;padding:12px 24px;border-radius:6px;
-      box-shadow:0 3px 8px rgba(0,0,0,.15);opacity:0;
-      transition:opacity .4s ease;pointer-events:none;z-index:1000;
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      max-width: 1000px;
+      padding: 40px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     }
-    .toast.show{opacity:1}
 
-    /* ——— Card ——— */
-    .card{
-      width:350px;background:#fff;border-radius:10px;
-      padding:32px 28px;box-shadow:0 5px 15px rgba(0,0,0,.1);
-      text-align:center;
+    .card {
+      flex: 1;
+      max-width: 400px;
+      text-align: center;
     }
-    h1{color:#004c99;font-size:1.6rem;margin-bottom:.25rem}
-    p.sub{font-size:.95rem;margin-bottom:1.5rem}
 
-    /* ——— File & button ——— */
-    input[type="file"]{
-      width:100%;padding:10px;border:1px solid #ccc;
-      border-radius:6px;margin-bottom:1.2rem;cursor:pointer;
+    h1 {
+      color: #004c99;
+      font-size: 2rem;
+      margin-bottom: .25rem;
     }
-    button{
-      width:100%;background:#004c99;color:#fff;border:none;
-      border-radius:6px;padding:12px;font-size:1rem;cursor:pointer;
-      transition:background .2s;
-    }
-    button:hover{background:#003366}
-    #status{margin-top:1rem;font-size:.9rem}
 
-    /* ——— Modal valoración ——— */
-    .overlay{
-      position:fixed;inset:0;background:rgba(0,0,0,.5);
-      display:flex;align-items:center;justify-content:center;
-      visibility:hidden;opacity:0;transition:.3s;
-      z-index:2000;
+    p.sub {
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      color: #444;
     }
-    .overlay.show{visibility:visible;opacity:1}
-    .modal{
-      background:#fff;border-radius:8px;padding:24px 32px;
-      text-align:center;width:300px;box-shadow:0 4px 12px rgba(0,0,0,.2);
+
+    input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 1.2rem;
+      cursor: pointer;
     }
-    .stars{
-      font-size:2rem;color:#ccc;cursor:pointer;margin:10px 0 20px;
+
+    button {
+      width: 100%;
+      background: #004c99;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 14px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
     }
-    .stars span{transition:color .2s}
-    .stars span.active{color:#ffc107}
+
+    button:hover {
+      background: #003366;
+    }
+
+    #status {
+      margin-top: 1rem;
+      font-size: .9rem;
+    }
+
+    .plantillas {
+      display: none;
+      flex: 1;
+      max-width: 300px;
+      text-align: left;
+    }
+
+    .plantillas h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      color: #004c99;
+    }
+
+    .plantillas a {
+      display: inline-block;
+      background: #2196f3;
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.95rem;
+      margin-top: 10px;
+    }
+
+    .plantillas a:hover {
+      background: #1976d2;
+    }
   </style>
 </head>
-
 <body>
 
-  <!-- Toast -->
-  <div id="welcomeToast" class="toast">
-    Bienvenidos, el proceso ahora es más sencillo:<br>
-    solo carguen el PDF y descarguen el archivo.
-  </div>
+  <div class="container">
+    <!-- Conversor -->
+    <div class="card">
+      <h1>QUIK S.A.S</h1>
+      <p class="sub">Conversor de PDF a Excel</p>
 
-  <!-- Card principal -->
-  <div class="card">
-    <h1>QUIK S.A.S</h1>
-    <p class="sub">Conversor de PDF a Excel</p>
+      <form id="uploadForm">
+        <input type="file" name="file" accept="application/pdf" required />
+        <button type="submit">Procesar</button>
+      </form>
 
-    <form id="uploadForm">
-      <input type="file" name="file" accept="application/pdf" required />
-      <button type="submit">Procesar</button>
-    </form>
+      <p id="status"></p>
+    </div>
 
-    <p id="status"></p>
-  </div>
-
-  <!-- Modal de valoración -->
-  <div id="ratingOverlay" class="overlay">
-    <div class="modal">
-      <h3>¿Qué tal fue tu experiencia?</h3>
-      <div id="stars" class="stars">
-        <span data-v="1">★</span><span data-v="2">★</span>
-        <span data-v="3">★</span><span data-v="4">★</span>
-        <span data-v="5">★</span>
-      </div>
-      <p id="thanks" style="display:none;font-size:.9rem;color:#28a745">
-        ¡Gracias por calificar!
-      </p>
+    <!-- Sección de plantillas (oculta hasta que se descargue el archivo) -->
+    <div class="plantillas" id="plantillas">
+      <h2>Plantillas disponibles</h2>
+      <a href="https://quiksas-my.sharepoint.com/:f:/g/personal/fredy_urrea_quik_com_co/EpmN4DmY9BBJsQkS3NVUrWsB8-eRvsZhLbqeGUKbFgcevA?e=xvGbo0" target="_blank">📊 Descargar plantilla de Power BI</a>
     </div>
   </div>
 
   <script>
-    /* ——— Toast ——— */
-    window.addEventListener('DOMContentLoaded',()=>{
-      const toast=document.getElementById('welcomeToast');
-      toast.classList.add('show');
-      setTimeout(()=>toast.classList.remove('show'),5000);
-    });
-
-    /* ——— Subida & descarga ——— */
-    const form   = document.getElementById('uploadForm');
+    const form = document.getElementById('uploadForm');
     const status = document.getElementById('status');
-    const overlay= document.getElementById('ratingOverlay');
-    const stars  = document.querySelectorAll('#stars span');
-    const thanks = document.getElementById('thanks');
+    const plantillas = document.getElementById('plantillas');
 
-    form.addEventListener('submit',async (e)=>{
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      status.textContent='Procesando…';
-      const data=new FormData(form);
-      try{
-        const res=await fetch('/procesar',{method:'POST',body:data});
-        if(!res.ok){
-          const err=await res.json();
-          status.textContent='Error: '+(err.detail||'no se pudo procesar');
+      status.textContent = 'Procesando…';
+      const data = new FormData(form);
+      try {
+        const res = await fetch('/procesar', { method: 'POST', body: data });
+        if (!res.ok) {
+          const err = await res.json();
+          status.textContent = 'Error: ' + (err.detail || 'no se pudo procesar');
           return;
         }
-        const blob=await res.blob();
-        const url=URL.createObjectURL(blob);
-        const a=Object.assign(document.createElement('a'),
-                  {href:url,download:'consolidado.xlsx'});
-        document.body.appendChild(a);a.click();a.remove();
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), {
+          href: url,
+          download: 'consolidado.xlsx'
+        });
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
         URL.revokeObjectURL(url);
-        status.textContent='¡Listo! Se descargó el Excel.';
+        status.textContent = '¡Listo! Se descargó el Excel.';
         form.reset();
-        /* Mostrar modal de valoración */
-        overlay.classList.add('show');
-      }catch(err){
-        status.textContent='Error: '+err.message;
+
+        // Mostrar sección de plantillas
+        plantillas.style.display = 'block';
+
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message;
       }
     });
-
-    /* ——— Estrellas ——— */
-    stars.forEach(s=>{
-      s.addEventListener('mouseover',()=>highlight(s.dataset.v));
-      s.addEventListener('mouseout', ()=>highlight(0));
-      s.addEventListener('click',    ()=>sendRating(s.dataset.v));
-    });
-    function highlight(val){
-      stars.forEach(st=>{
-        st.classList.toggle('active', st.dataset.v<=val);
-      });
-    }
-    async function sendRating(val){
-      highlight(val);
-      try{
-        await fetch('/feedback',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({rating:Number(val)})
-        });
-      }catch{}
-      thanks.style.display='block';
-      setTimeout(()=>overlay.classList.remove('show'),2000);
-    }
   </script>
+
 </body>
 </html>
