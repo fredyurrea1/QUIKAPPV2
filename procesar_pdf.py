@@ -414,7 +414,17 @@ def build_consolidado(clean_xlsx: Path) -> Path:
 
     resultado = pd.concat(frames, ignore_index=True)
     resultado["Donde"] = resultado["Donde"].replace(r"^\s*$", pd.NA, regex=True).ffill()
-    resultado.to_excel(out_xlsx, index=False, header=header)
+
+    # NUEVO PASO: recodificar "Dentro/Fuera de la organización" en la columna Donde
+    resultado["Donde"] = resultado["Donde"].replace(
+        {
+            "Dentro de la organización": "DO",
+            "Fuera de la organización": "FO",
+        }
+    )
+
+    # Guardar usando hoja llamada "Consolidado"
+    resultado.to_excel(out_xlsx, index=False, header=header, sheet_name="Consolidado")
     return out_xlsx
 
 
@@ -462,3 +472,4 @@ if __name__ == "__main__":
     temp_dir = Path(tempfile.gettempdir()) / f"run-{uuid.uuid4().hex}"
     out = process_pdf(sys.argv[1], temp_dir)
     print("Consolidado generado en:", out)
+
